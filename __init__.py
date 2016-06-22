@@ -354,3 +354,22 @@ def getip():
     # ip_lists = socket.gethostbyname_ex(socket.gethostname())
     # for ip_list in ip_lists:
     #     print ip_list
+
+#简单的爬虫脚本，用来爬取网页
+def getURLContent(url):
+        headers = {
+               'Accept-Language': 'en-US,en;q=0.5',
+               'Accept-Encoding': 'gzip, deflate',
+               'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+               'Connection' : 'keep-alive',
+               }
+        headers['User-Agent'] = "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:35.0) Gecko/20100101 Firefox/35.0" #USER_AGENTS[random.randint(0, len(USER_AGENTS)-1)]
+        try:
+            r = requests.get(url, params={'ip': '8.8.8.8'}, headers=headers, timeout=10)
+            r.raise_for_status()
+        except requests.RequestException as e:
+            logging.error(e)
+            return None
+        else:
+           #   print r.encoding
+            return r.content
