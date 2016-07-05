@@ -76,7 +76,7 @@ def readtxtfile(file):
     fd = os.open(file, os.O_RDONLY)
     if fd > 0:
         try:
-            result = os.read(fd, 999999)
+            result = os.read(fd, 999999999)
         except:
             print 'except: readtxtfile'
             result = None
