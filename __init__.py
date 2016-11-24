@@ -155,9 +155,9 @@ def unquote(s):
 
 ''''''''''''''''''''''''''''''''''''''''''
 # 计算字符串的MD5值，返回小写的MD5值串
-def md5(s):
+def md5(buf):
     m2 = hashlib.md5()
-    m2.update(s)
+    m2.update(buf)
     return m2.hexdigest()
 
 # MD5加密算法，返回32位小写16进制符号
@@ -373,3 +373,145 @@ def getURLContent(url):
         else:
            #   print r.encoding
             return r.content
+
+"""
+时间记录的函数和装饰器
+"""
+class TimeRecorder:
+    def __init__(self, name):
+        print(name + u" start")
+        self.name = name
+        self.startTime = time.time()
+    def __del__(self):
+        print(u"{0} end time: {1}".format(self.name, time.time() - self.startTime))
+
+"""
+def scan1():
+    t = TimeRecorder(scan1.func_name)
+    time.sleep(1)
+    return 1
+
+print scan1()
+"""
+
+
+# 函数装饰器，让函数打印耗时
+def logtime(func):
+    def wrapper(*args, **kwargs):
+        print(func.func_name + u" start")
+        startTime = time.time()
+        ret = func(*args, **kwargs)
+        print(u"{0} end time: {1}".format(func.func_name, time.time() - startTime))
+        return ret
+    return wrapper
+
+# 指定一个名称
+def logtimewithname(name = None):
+    def wrapper(func):
+        def wrapper2(*args, **kwargs):
+            _name = name
+            if name is None:
+                _name = func.func_name
+            else:
+                _name = name
+            print(_name + u" start")
+            startTime = time.time()
+            res = func(*args, **kwargs)
+            print(u"{0} end time: {1}".format(_name, time.time() - startTime))
+            return res
+        return wrapper2
+    return wrapper
+
+
+# 函数限定时间运行
+def timelimit(interval):
+    def time_out():
+        raise Exception("time out")
+
+    def wrapper(func):
+        def wrapper2(*args, **kwargs):
+            print(func.func_name + u" start")
+            timer = Timer(interval, time_out)
+            timer.start()
+            startTime = time.time()
+            res = func(*args, **kwargs)
+            timer.cancel()
+            print(u"{0} end time: {1}".format(func.func_name, time.time() - startTime))
+            return res
+        return wrapper2
+    return wrapper
+
+
+
+
+class TimeoutException(Exception):
+    pass
+
+# 函数限定时间运行
+def timelimited(timeout):
+    def decorator(func):
+        def decorator2(*args,**kwargs):
+            class TimeLimited(Thread):
+                def __init__(self):
+                    Thread.__init__(self)
+                    self._error = None
+                    self._result = None
+
+                def run(self):
+                    try:
+                        print(func.func_name + u" start")
+                        startTime = time.time()
+                        self._result = func(*args, **kwargs)
+                        print(u"{0} end time: {1}".format(func.func_name, time.time() - startTime))
+                    except Exception, e:
+                        self._error = e
+
+                def _stop(self):
+                    if self.isAlive():
+                        Thread._Thread__stop(self)
+
+            t = TimeLimited()
+            t.start()
+            t.join(timeout)
+
+            if t.isAlive():
+                t._stop()
+                raise TimeoutException('timeout for %s' % (repr(func)))
+
+            if isinstance(t._error, TimeoutException):
+                t._stop()
+                raise TimeoutException('timeout for %s' % (repr(func)))
+
+            if t._error is None:
+                return t._result
+
+        return decorator2
+    return decorator
+
+"""
+@logtime
+def scan1(p1, p2):
+    time.sleep(1)
+    return 1
+print scan1(1, 2)
+
+# @logtimewithname()
+@logtimewithname(u"扫描")
+def scan2(p1, p2):
+    time.sleep(1)
+    return 2
+
+print scan2(1, 2)
+
+@timelimited(2)
+def scan3():
+    time.sleep(3)
+
+scan3()
+"""
+
+# def setclipboard(s):
+#     win32clipboard.OpenClipboard()
+#     win32clipboard.EmptyClipboard()
+#     win32clipboard.SetClipboardText(s)
+#     win32clipboard.CloseClipboard()
