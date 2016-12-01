@@ -39,6 +39,32 @@ from bs4 import BeautifulSoup
 
 __all__ = ['path', 'file', 'net', 'zip', 'crypt']
 
+
+def initlogging(logfilename):
+    '''
+    binPath = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "bin")
+    pid = '%d' % (os.getpid())
+    logging.basicConfig(level=logging.DEBUG,
+            format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S',
+            filename=u'%s%swrap_%s.log' % (binPath, os.sep, pid),
+            filemode='a')
+    #################################################################################################
+    #定义一个StreamHandler，将INFO级别或更高的日志信息打印到标准错误，并将其添加到当前的日志处理对象#
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    console.setFormatter(formatter)
+    logging.getLogger('').addHandler(console)
+    #################################################################################################
+    '''
+    logging.basicConfig(stream=sys.stdout,
+                        format = '%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
+                        datefmt = '%Y-%m-%d %H:%M:%S',
+                        filename = logfilename,
+                        filemode = 'a',
+                        level = logging.DEBUG)
+
 '''
 把一段内容作为日志保存到当前目录下的log.txt文件中，每次重新创建，不追加！追加模式请使用loga函数。
 s：      将要被输出到日志文件的内容
@@ -92,7 +118,12 @@ def getdesktoppath():
 
 # 返回当前脚本的全路径，末尾带\
 def getthispath():
-    return os.path.split(os.path.realpath(sys.argv[0]))[0] + '\\'
+    path = sys.path[0]
+    #判断为脚本文件还是py2exe编译后的文件，如果是脚本文件，则返回的是脚本的目录，如果是py2exe编译后的文件，则返回的是编译后的文件路径
+    if os.path.isdir(path):
+        return path + '\\'
+    elif os.path.isfile(path):
+        return os.path.split(path)[0] + '\\'
 
 # 获取一个文件的大小
 def getfilesize(f):
