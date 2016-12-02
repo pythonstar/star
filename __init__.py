@@ -15,7 +15,7 @@ net
 zip
 压缩包操作模块
 
-crypt
+
 加解密操作模块
 '''
 import os
@@ -39,8 +39,18 @@ from bs4 import BeautifulSoup
 
 __all__ = ['path', 'file', 'net', 'zip', 'crypt']
 
+###################################################
+'''
+调试相关
+'''
+###################################################
 
-def initlogging(logfilename):
+'''
+示例：
+star.initlogging()
+logging.debug(u"%s %d", u"哈", 1)
+'''
+def initlogging(logfilename = u"log.txt"):
     '''
     binPath = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "bin")
     pid = '%d' % (os.getpid())
@@ -93,6 +103,210 @@ def log(s, file = 'log.txt', mode = os.O_RDWR | os.O_CREAT):
 def loga(s, file = 'log.txt'):
     return log(s, file, os.O_RDWR | os.O_APPEND)
 
+# 命令行下暂停
+def pause():
+    os.system('pause')
+
+
+"""
+时间记录的函数和装饰器
+"""
+class TimeRecorder:
+    def __init__(self, name):
+        print(name + u" start")
+        self.name = name
+        self.startTime = time.time()
+    def __del__(self):
+        print(u"{0} end, time used: {1}".format(self.name, time.time() - self.startTime))
+
+"""
+def scan1():
+    t = TimeRecorder(scan1.func_name)
+    time.sleep(1)
+    return 1
+
+print scan1()
+"""
+
+
+# 函数装饰器，让函数打印耗时
+def logtime(func):
+    def wrapper(*args, **kwargs):
+        print(func.func_name + u" start")
+        startTime = time.time()
+        ret = func(*args, **kwargs)
+        print(u"{0} end, time used: {1}".format(func.func_name, time.time() - startTime))
+        return ret
+    return wrapper
+
+# 指定一个名称
+def logtimewithname(name = None):
+    def wrapper(func):
+        def wrapper2(*args, **kwargs):
+            _name = name
+            if name is None:
+                _name = func.func_name
+            else:
+                _name = name
+            print(_name + u" start")
+            startTime = time.time()
+            res = func(*args, **kwargs)
+            print(u"{0} end, time used: {1}".format(_name, time.time() - startTime))
+            return res
+        return wrapper2
+    return wrapper
+
+
+# 函数限定时间运行
+def timelimit(interval):
+    def time_out():
+        raise Exception("time out")
+
+    def wrapper(func):
+        def wrapper2(*args, **kwargs):
+            print(func.func_name + u" start")
+            timer = Timer(interval, time_out)
+            timer.start()
+            startTime = time.time()
+            res = func(*args, **kwargs)
+            timer.cancel()
+            print(u"{0} end time: {1}".format(func.func_name, time.time() - startTime))
+            return res
+        return wrapper2
+    return wrapper
+
+
+
+
+class TimeoutException(Exception):
+    pass
+
+# 函数限定时间运行
+def timelimited(timeout):
+    def decorator(func):
+        def decorator2(*args,**kwargs):
+            class TimeLimited(Thread):
+                def __init__(self):
+                    Thread.__init__(self)
+                    self._error = None
+                    self._result = None
+
+                def run(self):
+                    try:
+                        print(func.func_name + u" start")
+                        startTime = time.time()
+                        self._result = func(*args, **kwargs)
+                        print(u"{0} end time: {1}".format(func.func_name, time.time() - startTime))
+                    except Exception, e:
+                        self._error = e
+
+                def _stop(self):
+                    if self.isAlive():
+                        Thread._Thread__stop(self)
+
+            t = TimeLimited()
+            t.start()
+            t.join(timeout)
+
+            if t.isAlive():
+                t._stop()
+                raise TimeoutException('timeout for %s' % (repr(func)))
+
+            if isinstance(t._error, TimeoutException):
+                t._stop()
+                raise TimeoutException('timeout for %s' % (repr(func)))
+
+            if t._error is None:
+                return t._result
+
+        return decorator2
+    return decorator
+
+"""
+@logtime
+def scan1(p1, p2):
+    time.sleep(1)
+    return 1
+print scan1(1, 2)
+
+# @logtimewithname()
+@logtimewithname(u"扫描")
+def scan2(p1, p2):
+    time.sleep(1)
+    return 2
+
+print scan2(1, 2)
+
+@timelimited(2)
+def scan3():
+    time.sleep(3)
+
+scan3()
+"""
+###################################################
+
+###################################################
+'''
+系统相关
+'''
+###################################################
+#获取本机无线IP
+def getip():
+    local_iP = socket.gethostbyname(socket.gethostname())
+    return str(local_iP)
+    # ip_lists = socket.gethostbyname_ex(socket.gethostname())
+    # for ip_list in ip_lists:
+    #     print ip_list
+
+# def setclipboard(s):
+#     win32clipboard.OpenClipboard()
+#     win32clipboard.EmptyClipboard()
+#     win32clipboard.SetClipboardText(s)
+#     win32clipboard.CloseClipboard()
+
+#获取当前时间戳，10位
+def gettime10():
+    return str(int(time.time()))
+
+#获取当前时间戳，13位
+def gettime13():
+    return str(int(time.time())) + "000"
+
+#获取当前时间
+def getcurrenttime():
+    return time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
+
+def resetutf8():
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
+
+def resetgbk():
+    reload(sys)
+    sys.setdefaultencoding('GBK')
+
+###################################################
+'''
+文件，路径相关
+'''
+###################################################
+
+# 返回桌面全路径，末尾带\
+def getdesktoppath():
+    return 'C:\\Users\\xxx\\Desktop\\'
+
+# 返回当前脚本的全路径，末尾带\
+def getthispath():
+    path = sys.path[0]
+    #判断为脚本文件还是py2exe编译后的文件，如果是脚本文件，则返回的是脚本的目录，如果是py2exe编译后的文件，则返回的是编译后的文件路径
+    if os.path.isdir(path):
+        return path + '\\'
+    elif os.path.isfile(path):
+        return os.path.split(path)[0] + '\\'
+
+# 获取一个文件的大小
+def getfilesize(f):
+    return os.path.getsize(f)
+
 '''
 一次性读取文本文件中的内容并返回。
 file：文本文件的路径。
@@ -112,26 +326,95 @@ def readtxtfile(file):
         print 'open file error: ' + file
     return result
 
-# 返回桌面全路径，末尾带\
-def getdesktoppath():
-    return 'C:\\Users\\xxx\\Desktop\\'
+# 创建多级目录，比如c:\\test1\\test2,如果test1 test2都不存在，都将被创建
+def createDirs(to_create_path):
+    path_create = to_create_path
+    if os.sep == '\\':
+        path_create = path_create.replace('/', os.sep)
+    dirs = path_create.split(os.sep)
+    path = ''
+    for dir in dirs:
+        dir += os.sep
+        path = os.path.join(path, dir)
+        if not os.path.exists(path):
+            os.mkdir(path, 0o777)
 
-# 返回当前脚本的全路径，末尾带\
-def getthispath():
-    path = sys.path[0]
-    #判断为脚本文件还是py2exe编译后的文件，如果是脚本文件，则返回的是脚本的目录，如果是py2exe编译后的文件，则返回的是编译后的文件路径
-    if os.path.isdir(path):
-        return path + '\\'
-    elif os.path.isfile(path):
-        return os.path.split(path)[0] + '\\'
+    if not os.path.exists(to_create_path):
+        return False
+    return True
 
-# 获取一个文件的大小
-def getfilesize(f):
-    return os.path.getsize(f)
+def deleteDirs(to_del_dirs):
+    if os.path.exists(to_del_dirs):
+        shutil.rmtree(to_del_dirs)
 
-# 命令行下暂停
-def pause():
-    os.system('pause')
+def deleteFile(to_del_file):
+    if os.path.exists(to_del_file):
+         os.remove(to_del_file)
+    else:
+        return True
+
+    if not os.path.exists(to_del_file):
+        return True
+    else:
+        return False
+
+def copyFile(sourceDir, destDir):
+    if deleteFile(destDir):
+        shutil.copy(sourceDir, destDir)
+        if os.path.exists(destDir):
+            return True
+
+    return False
+
+def moveFile(sourceDir, destDir):
+    if deleteFile(destDir):
+        shutil.move(sourceDir, destDir)
+        if os.path.exists(destDir):
+            return True
+
+    return False
+
+# print star.file.isEndWith(filename, "txt", "apk")
+def isEndWith(file, *endstring):
+    return True in map(file.endswith, endstring)
+
+# print star.file.isEndWith(filename, ["txt", "apk"])
+# def isEndWith(file, endstring):
+#     return True in map(file.endswith, endstring)
+
+# filelist = Utils.getFileNameListFormDir(metainfPath, ['.rsa', '.dsa'])
+def getFileNameListFormDir(path, endstringlist):
+    retlist = []
+    try:
+        if os.path.exists(path):
+            flist = os.listdir(path)
+            for f in flist:
+                if os.path.splitext(f)[1].lower() in endstringlist:
+                    retlist.append(f)
+    except Exception, e:
+        logging.error(u"[getFileListFormDir] 获取特定后缀名%s的文件失败，路径:%s", str(endstringlist), path)
+        return []
+    return retlist
+
+# smaliFileList = Utils.getFileListFromDir(outDir, '.smali')
+def getFileListFromDir(rootPath, endstring):
+    fileList = []
+    try:
+        for root, dirs, files in os.walk(rootPath):
+            for name in files:
+                lowerName = name.lower()
+                if lowerName.endswith(endstring):
+                    fileList.append(os.path.join(root, name))
+    except Exception, e:
+        logging.error(u"[getFileListFromDir] 从目录%s获取特定后缀名%s的文件失败", rootPath, endstring)
+        return []
+    return fileList
+
+###################################################
+'''
+网络相关
+'''
+###################################################
 
 #使用requests库封装一个简单的通过get方式获取网页源码的函数
 def gethtml(url, decode = True):
@@ -171,20 +454,39 @@ def downloadhtml(url, f):
         filename = None
     return filename
 
-def resetutf8():
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
-
-def resetgbk():
-    reload(sys)
-    sys.setdefaultencoding('GBK')
+#简单的爬虫脚本，用来爬取网页
+def getURLContent(url):
+        headers = {
+               'Accept-Language': 'en-US,en;q=0.5',
+               'Accept-Encoding': 'gzip, deflate',
+               'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+               'Connection' : 'keep-alive',
+               }
+        headers['User-Agent'] = "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:35.0) Gecko/20100101 Firefox/35.0" #USER_AGENTS[random.randint(0, len(USER_AGENTS)-1)]
+        try:
+            r = requests.get(url, params={'ip': '8.8.8.8'}, headers=headers, timeout=10)
+            r.raise_for_status()
+        except requests.RequestException as e:
+            logging.error(e)
+            return None
+        else:
+           #   print r.encoding
+            return r.content
 
 def quote(s):
     return urllib.quote(s)
 def unquote(s):
     return urllib.unquote(s)
 
-''''''''''''''''''''''''''''''''''''''''''
+###################################################
+'''
+加解密
+'''
+###################################################
+#  生成随机密码
+def genpasswd(length=8,chars=string.letters+string.digits):
+    return ''.join([ choice(chars) for i in range(length)])
+
 # 计算字符串的MD5值，返回小写的MD5值串
 def md5(buf):
     m2 = hashlib.md5()
@@ -300,17 +602,6 @@ class logger:
     def getlogger(self):
         return self.log
 
-#获取当前时间戳，10位
-def gettime10():
-    return str(int(time.time()))
-
-#获取当前时间戳，13位
-def gettime13():
-    return str(int(time.time())) + "000"
-
-#获取当前时间
-def getcurrenttime():
-    return time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
 
 '''
 时间记录者，使用示例：
@@ -373,176 +664,4 @@ connection.send_messages([email2, email3])
 connection.close()
 """
 
-# 生成随机密码
-def genpasswd(length=8,chars=string.letters+string.digits):
-    return ''.join([ choice(chars) for i in range(length)])
 
-
-#获取本机无线IP
-def getip():
-    local_iP = socket.gethostbyname(socket.gethostname())
-    return str(local_iP)
-    # ip_lists = socket.gethostbyname_ex(socket.gethostname())
-    # for ip_list in ip_lists:
-    #     print ip_list
-
-#简单的爬虫脚本，用来爬取网页
-def getURLContent(url):
-        headers = {
-               'Accept-Language': 'en-US,en;q=0.5',
-               'Accept-Encoding': 'gzip, deflate',
-               'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-               'Connection' : 'keep-alive',
-               }
-        headers['User-Agent'] = "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:35.0) Gecko/20100101 Firefox/35.0" #USER_AGENTS[random.randint(0, len(USER_AGENTS)-1)]
-        try:
-            r = requests.get(url, params={'ip': '8.8.8.8'}, headers=headers, timeout=10)
-            r.raise_for_status()
-        except requests.RequestException as e:
-            logging.error(e)
-            return None
-        else:
-           #   print r.encoding
-            return r.content
-
-"""
-时间记录的函数和装饰器
-"""
-class TimeRecorder:
-    def __init__(self, name):
-        print(name + u" start")
-        self.name = name
-        self.startTime = time.time()
-    def __del__(self):
-        print(u"{0} end time: {1}".format(self.name, time.time() - self.startTime))
-
-"""
-def scan1():
-    t = TimeRecorder(scan1.func_name)
-    time.sleep(1)
-    return 1
-
-print scan1()
-"""
-
-
-# 函数装饰器，让函数打印耗时
-def logtime(func):
-    def wrapper(*args, **kwargs):
-        print(func.func_name + u" start")
-        startTime = time.time()
-        ret = func(*args, **kwargs)
-        print(u"{0} end time: {1}".format(func.func_name, time.time() - startTime))
-        return ret
-    return wrapper
-
-# 指定一个名称
-def logtimewithname(name = None):
-    def wrapper(func):
-        def wrapper2(*args, **kwargs):
-            _name = name
-            if name is None:
-                _name = func.func_name
-            else:
-                _name = name
-            print(_name + u" start")
-            startTime = time.time()
-            res = func(*args, **kwargs)
-            print(u"{0} end time: {1}".format(_name, time.time() - startTime))
-            return res
-        return wrapper2
-    return wrapper
-
-
-# 函数限定时间运行
-def timelimit(interval):
-    def time_out():
-        raise Exception("time out")
-
-    def wrapper(func):
-        def wrapper2(*args, **kwargs):
-            print(func.func_name + u" start")
-            timer = Timer(interval, time_out)
-            timer.start()
-            startTime = time.time()
-            res = func(*args, **kwargs)
-            timer.cancel()
-            print(u"{0} end time: {1}".format(func.func_name, time.time() - startTime))
-            return res
-        return wrapper2
-    return wrapper
-
-
-
-
-class TimeoutException(Exception):
-    pass
-
-# 函数限定时间运行
-def timelimited(timeout):
-    def decorator(func):
-        def decorator2(*args,**kwargs):
-            class TimeLimited(Thread):
-                def __init__(self):
-                    Thread.__init__(self)
-                    self._error = None
-                    self._result = None
-
-                def run(self):
-                    try:
-                        print(func.func_name + u" start")
-                        startTime = time.time()
-                        self._result = func(*args, **kwargs)
-                        print(u"{0} end time: {1}".format(func.func_name, time.time() - startTime))
-                    except Exception, e:
-                        self._error = e
-
-                def _stop(self):
-                    if self.isAlive():
-                        Thread._Thread__stop(self)
-
-            t = TimeLimited()
-            t.start()
-            t.join(timeout)
-
-            if t.isAlive():
-                t._stop()
-                raise TimeoutException('timeout for %s' % (repr(func)))
-
-            if isinstance(t._error, TimeoutException):
-                t._stop()
-                raise TimeoutException('timeout for %s' % (repr(func)))
-
-            if t._error is None:
-                return t._result
-
-        return decorator2
-    return decorator
-
-"""
-@logtime
-def scan1(p1, p2):
-    time.sleep(1)
-    return 1
-print scan1(1, 2)
-
-# @logtimewithname()
-@logtimewithname(u"扫描")
-def scan2(p1, p2):
-    time.sleep(1)
-    return 2
-
-print scan2(1, 2)
-
-@timelimited(2)
-def scan3():
-    time.sleep(3)
-
-scan3()
-"""
-
-# def setclipboard(s):
-#     win32clipboard.OpenClipboard()
-#     win32clipboard.EmptyClipboard()
-#     win32clipboard.SetClipboardText(s)
-#     win32clipboard.CloseClipboard()
