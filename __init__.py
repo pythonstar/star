@@ -284,6 +284,43 @@ def resetgbk():
     reload(sys)
     sys.setdefaultencoding('GBK')
 
+def run(args):
+    if 'Windows' in platform.system():
+        command = args.encode("utf-8")
+        command = command.decode("utf-8").encode("gbk")
+    if 'Linux'in platform.system():
+        command = args
+    p = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    # ret = p.wait() #该方法有问题
+    ret = p.communicate()
+    output = Utils.out2str(p.stdout.readlines())
+    error = Utils.out2str(p.stderr.readlines())
+    # return output if ret is 0 else error
+    return star.commandResult2Str(ret)
+
+def runJar(args):
+    return Utils.run(args)
+
+def commandResult2Str(text_seq):
+    out = ''
+    result = True
+    try:
+        out = str.strip(" ".join(text_seq).replace("\r", "").replace("\n", "")).decode('utf-8')
+    except Exception, e:
+        logging.warn(u"[out2str] 运行结果utf-8转码错误，将尝试gbk转码")
+        result = False
+
+    if not result:
+        try:
+            result = True
+            out = str.strip(" ".join(text_seq).replace("\r", "").replace("\n", "")).decode('gbk')
+        except Exception, e:
+            logging.warn(u"[out2str] 运行结果gbk转码错误，将输出空字符")
+            result = False
+
+    if not result:
+        out = ''
+    return out
 ###################################################
 '''
 文件，路径相关
@@ -302,6 +339,18 @@ def getthispath():
         return path + '\\'
     elif os.path.isfile(path):
         return os.path.split(path)[0] + '\\'
+
+# 获取路径的父目录，末尾不带\
+def getparent(filepath):
+    if not filepath:
+        return None
+    lsPath = os.path.split(filepath)
+    # print(lsPath)
+    # print("lsPath[1] = %s" %lsPath[1])
+    if lsPath[1]:
+        return lsPath[0]
+    lsPath = os.path.split(lsPath[0])
+    return lsPath[0]
 
 # 获取一个文件的大小
 def getfilesize(f):
@@ -527,6 +576,17 @@ def md5file(fname):
     else:
         return None
     return m.hexdigest()
+
+# 获取文件的sha1值，大写
+def sha1file(file_path):
+    with open(file_path, "rb") as file:
+        s = sha1()
+        while True:
+            strRead = file.read(1024 * 1024)
+            if not strRead:
+                break
+            s.update(file.read())
+    return s.hexdigest().upper()
 ''''''''''''''''''''''''''''''''''''''''''
 
 def base64encode(s):
