@@ -15,13 +15,13 @@ net
 zip
 压缩包操作模块
 
-
 加解密操作模块
 '''
 import os
 import re
 import sys
 import time
+import shutil
 import socket
 import requests
 import urllib
@@ -250,7 +250,7 @@ scan3()
 系统相关
 '''
 ###################################################
-#获取本机无线IP
+#获取本机IP
 def getip():
     local_iP = socket.gethostbyname(socket.gethostname())
     return str(local_iP)
@@ -270,7 +270,7 @@ def gettime10():
 
 #获取当前时间戳，13位
 def gettime13():
-    return str(int(time.time())) + "000"
+    return "%d" % (time.time() * 1000)
 
 #获取当前时间
 def getcurrenttime():
@@ -311,23 +311,22 @@ def getfilesize(f):
 一次性读取文本文件中的内容并返回。
 file：文本文件的路径。
 '''
-def readtxtfile(file):
-    result = None
-    fd = os.open(file, os.O_RDONLY)
-    if fd > 0:
-        try:
-            result = os.read(fd, 999999999)
-        except:
-            print 'except: readtxtfile'
-            result = None
-        finally:
-            os.close(fd)
-    else:
-        print 'open file error: ' + file
-    return result
+def read(filename, binary=True):
+    try:
+        with open(filename, 'rb' if binary else 'r') as f:
+            return f.read()
+    except Exception as e:
+        print e
+        return None
+
+'''
+def write(filename, buf, binary=True):
+    with open(filename, 'wb' if binary else 'w') as f:
+        return f.write(buf)
+'''
 
 # 创建多级目录，比如c:\\test1\\test2,如果test1 test2都不存在，都将被创建
-def createDirs(to_create_path):
+def createdirs(to_create_path):
     path_create = to_create_path
     if os.sep == '\\':
         path_create = path_create.replace('/', os.sep)
@@ -343,39 +342,36 @@ def createDirs(to_create_path):
         return False
     return True
 
-def deleteDirs(to_del_dirs):
+def deletedirs(to_del_dirs):
     if os.path.exists(to_del_dirs):
         shutil.rmtree(to_del_dirs)
-
-def deleteFile(to_del_file):
-    if os.path.exists(to_del_file):
-         os.remove(to_del_file)
+        return os.path.exists(to_del_dirs) is False
     else:
         return True
 
-    if not os.path.exists(to_del_file):
+def deletefile(to_del_file):
+    if os.path.exists(to_del_file):
+         os.remove(to_del_file)
+         return os.path.exists(to_del_file) is False
+    else:
         return True
+
+def copyfile(sourceDir, destDir):
+    if deletefile(destDir):
+        shutil.copy(sourceDir, destDir)
+        return os.path.exists(destDir)
     else:
         return False
 
-def copyFile(sourceDir, destDir):
-    if deleteFile(destDir):
-        shutil.copy(sourceDir, destDir)
-        if os.path.exists(destDir):
-            return True
-
-    return False
-
-def moveFile(sourceDir, destDir):
-    if deleteFile(destDir):
+def movefile(sourceDir, destDir):
+    if deletefile(destDir):
         shutil.move(sourceDir, destDir)
-        if os.path.exists(destDir):
-            return True
+        return os.path.exists(destDir)
+    else:
+        return False
 
-    return False
-
-# print star.file.isEndWith(filename, "txt", "apk")
-def isEndWith(file, *endstring):
+# print star.file.isendwith(filename, "txt", "apk")
+def isendwith(file, *endstring):
     return True in map(file.endswith, endstring)
 
 # print star.file.isEndWith(filename, ["txt", "apk"])
@@ -383,7 +379,7 @@ def isEndWith(file, *endstring):
 #     return True in map(file.endswith, endstring)
 
 # filelist = Utils.getFileNameListFormDir(metainfPath, ['.rsa', '.dsa'])
-def getFileNameListFormDir(path, endstringlist):
+def getfilenamelistformdir(path, endstringlist):
     retlist = []
     try:
         if os.path.exists(path):
@@ -397,7 +393,7 @@ def getFileNameListFormDir(path, endstringlist):
     return retlist
 
 # smaliFileList = Utils.getFileListFromDir(outDir, '.smali')
-def getFileListFromDir(rootPath, endstring):
+def getfilelistfromdir(rootPath, endstring):
     fileList = []
     try:
         for root, dirs, files in os.walk(rootPath):
@@ -410,6 +406,18 @@ def getFileListFromDir(rootPath, endstring):
         return []
     return fileList
 
+
+def gbk2unicode(s):
+    return s.decode('gbk', 'ignore')
+
+def utf82unicode(s):
+    return s.decode('utf-8', 'ignore')
+
+def unicode2gbk(s):
+    return s.encode('gbk')
+
+def unicode2utf8(s):
+    return s.encode('utf-8')
 ###################################################
 '''
 网络相关
@@ -427,8 +435,27 @@ def gethtml(url, decode = True):
     # print s
     return s
 
+#简单的爬虫脚本，用来爬取网页
+def gethtmlex(url):
+    headers = {
+           'Accept-Language': 'en-US,en;q=0.5',
+           'Accept-Encoding': 'gzip, deflate',
+           'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+           'Connection' : 'keep-alive',
+           }
+    headers['User-Agent'] = "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:35.0) Gecko/20100101 Firefox/35.0" #USER_AGENTS[random.randint(0, len(USER_AGENTS)-1)]
+    try:
+        r = requests.get(url, params={'ip': '8.8.8.8'}, headers=headers, timeout=10)
+        r.raise_for_status()
+    except requests.RequestException as e:
+        logging.error(e)
+        return None
+    else:
+       #   print r.encoding
+        return r.content
+
 # 获取网页源码，内部已设置浏览器引擎防止反爬虫。
-def fetch(url):
+def fetchurl(url):
     request = urllib2.Request(url)
     useragent =  "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:35.0) Gecko/20100101 Firefox/35.0"
     try:
@@ -441,10 +468,10 @@ def fetch(url):
         return data
     except :
         # print "NOT OK:%s"%(url)
-        return "null"
+        return None
 
 # 下载网页源码到本地文件
-def downloadhtml(url, f):
+def download(url, f):
     filename = None
     try:
         filename = urllib.urlretrieve(url, filename = f)
@@ -453,25 +480,6 @@ def downloadhtml(url, f):
         print 'except: url miss http...'
         filename = None
     return filename
-
-#简单的爬虫脚本，用来爬取网页
-def getURLContent(url):
-        headers = {
-               'Accept-Language': 'en-US,en;q=0.5',
-               'Accept-Encoding': 'gzip, deflate',
-               'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-               'Connection' : 'keep-alive',
-               }
-        headers['User-Agent'] = "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:35.0) Gecko/20100101 Firefox/35.0" #USER_AGENTS[random.randint(0, len(USER_AGENTS)-1)]
-        try:
-            r = requests.get(url, params={'ip': '8.8.8.8'}, headers=headers, timeout=10)
-            r.raise_for_status()
-        except requests.RequestException as e:
-            logging.error(e)
-            return None
-        else:
-           #   print r.encoding
-            return r.content
 
 def quote(s):
     return urllib.quote(s)
@@ -484,24 +492,17 @@ def unquote(s):
 '''
 ###################################################
 #  生成随机密码
-def genpasswd(length=8,chars=string.letters+string.digits):
-    return ''.join([ choice(chars) for i in range(length)])
+def genpasswd(length=8, chars = string.letters + string.digits):
+    return ''.join([choice(chars) for i in range(length)])
 
-# 计算字符串的MD5值，返回小写的MD5值串
-def md5(buf):
-    m2 = hashlib.md5()
-    m2.update(buf)
-    return m2.hexdigest()
-
-# MD5加密算法，返回32位小写16进制符号
-def md5hex(word):
-
-    if isinstance(word, unicode):
-        word = word.encode("utf-8")
-    elif not isinstance(word, str):
-        word = str(word)
+# 计算字符串的MD5值，返回32个字符长度小写16进制符号
+def md5hex(buf):
+    if isinstance(buf, unicode):
+        buf = buf.encode("utf-8")
+    elif not isinstance(buf, str):
+        buf = str(buf)
     m = hashlib.md5()
-    m.update(word)
+    m.update(buf)
     return m.hexdigest()
 
 # 计算文件的MD5值
@@ -528,7 +529,7 @@ def md5file(fname):
     return m.hexdigest()
 ''''''''''''''''''''''''''''''''''''''''''
 
-def base64(s):
+def base64encode(s):
     return base64.b64encode(s)
 def base64decode(s):
     return base64.b64decode(s)
@@ -620,14 +621,22 @@ class timer:
         cost = self.endtime - self.begintime
         return cost.seconds
 
-# u'<title>个人资料_(\w+)（ID:(\d+)）的个人空间</title>'
+# '"(.*?)"'
 def find(reg, content):
     pattern = re.compile(reg, re.U | re.S)
     result = pattern.search(content)
     return result
-    # if result is not None:
-    #     self.nickname = result.group(1)
-    #     self.uid = result.group(2)
+
+# 先抓大后抓小
+# html = star.gethtml("https://github.com/pythonstar/star/wiki/%E8%AF%B4%E6%98%8E%E6%96%87%E6%A1%A3")
+# result = star.find('"wiki-pages"(.*?)"wiki-more-pages-link"', html)
+# print result
+# if result is not None:
+#     r = re.findall(r'href="(.*?)" class="wiki-page-link">(.*?)<', result.group(1))
+#     for i in r:
+#         s = '[' + i[1] + '](https://github.com' + i[0] + ')'
+#         print s
+
 
 # def getImg(html):
 #     reg = r'src="(.+?\.jpg)" pic_ext'
