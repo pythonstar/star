@@ -368,11 +368,13 @@ def read(filename, binary=True):
         print e
         return None
 
-'''
 def write(filename, buf, binary=True):
-    with open(filename, 'wb' if binary else 'w') as f:
-        return f.write(buf)
-'''
+    try:
+        with open(filename, 'wb' if binary else 'w') as f:
+            return f.write(buf)
+    except Exception as e:
+        print e
+        return None
 
 # 创建多级目录，比如c:\\test1\\test2,如果test1 test2都不存在，都将被创建
 def createdirs(to_create_path):
