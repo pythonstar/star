@@ -492,6 +492,7 @@ def gethtml(url, decode = True):
         s = html.text.encode(html.encoding)
     else:
         s = html.text
+    # s = BeautifulSoup(s, "lxml")
     return s
 
 #简单的爬虫脚本，用来爬取网页
@@ -540,13 +541,16 @@ def download(url, f):
         filename = None
     return filename
 
+# star.quote("你好") 输出 %E4%BD%A0%E5%A5%BD
 def quote(s):
     return urllib.quote(s)
+# star.unquote("%E4%BD%A0%E5%A5%BD") 输出 你好
 def unquote(s):
     return urllib.unquote(s)
 
 
 # 解密网络数据中的gzip加密数据
+def gzipdecode(data):
     s = StringIO.StringIO(data)
     gziper = gzip.GzipFile(fileobj = s)
     data = gziper.read()
