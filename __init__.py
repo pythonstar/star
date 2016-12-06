@@ -24,18 +24,20 @@ import time
 import shutil
 import socket
 import requests
+import gzip
 import urllib
 import urllib2
 import cookielib
-import hashlib
 import base64
+import hashlib
 import logging
-import gzip
+import string
 import StringIO
 import datetime
 from random import choice
-import string
 from bs4 import BeautifulSoup
+from win32com.shell import shell
+from win32com.shell import shellcon
 
 __all__ = ['path', 'file', 'net', 'zip', 'crypt']
 
@@ -327,9 +329,16 @@ def commandResult2Str(text_seq):
 '''
 ###################################################
 
-# 返回桌面全路径，末尾带\
+'''
+返回桌面全路径，末尾带\
+from win32com.shell import shell
+from win32com.shell import shellcon
+'''
 def getdesktoppath():
-    return 'C:\\Users\\xxx\\Desktop\\'
+    # return 'C:\\Users\\xxx\\Desktop\\'
+    desktop_path = shell.SHGetPathFromIDList(shell.SHGetSpecialFolderLocation(0, shellcon.CSIDL_DESKTOP))
+    return desktop_path + "\\"
+
 
 # 返回当前脚本的全路径，末尾带\
 def getthispath():
