@@ -492,7 +492,6 @@ def gethtml(url, decode = True):
         s = html.text.encode(html.encoding)
     else:
         s = html.text
-    # print s
     return s
 
 #简单的爬虫脚本，用来爬取网页
@@ -546,6 +545,40 @@ def quote(s):
 def unquote(s):
     return urllib.unquote(s)
 
+
+# 解密网络数据中的gzip加密数据
+    s = StringIO.StringIO(data)
+    gziper = gzip.GzipFile(fileobj = s)
+    data = gziper.read()
+    return data
+
+
+# print star.post("http://www.ximalaya.com/tracks/19158075/play", {'played_secs': 0, "duration": 0})
+def post(url, data, headers = None):
+    h = headers
+    if h is None:
+        h = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.122 Safari/537.36'}
+    s = requests.session()
+    r = s.post(url, data = data, headers = h)
+    soup = BeautifulSoup(r.text, "lxml")
+    return soup
+
+# print star.postdata("http://www.ximalaya.com/tracks/19158075/play", {'played_secs': 0, "duration": 0})
+def postdata(url, data, headers = None, isdecode = False):
+    post_data = urllib.urlencode(data)  #duration=0&played_secs=0
+    h = headers
+    if h is None:
+        h = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.122 Safari/537.36'}
+    cj = cookielib.CookieJar()
+    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+    req = urllib2.Request(url, post_data, h)
+    response = opener.open(req)
+    # print response.geturl()
+    # print response.info()
+    content = response.read()
+    if isdecode is True:
+        content = gzipdecode(content)
+    return content
 ###################################################
 '''
 加解密
@@ -599,57 +632,10 @@ def sha1file(file_path):
             s.update(file.read())
     return s.hexdigest().upper()
 ''''''''''''''''''''''''''''''''''''''''''
-
 def base64encode(s):
     return base64.b64encode(s)
 def base64decode(s):
     return base64.b64decode(s)
-''''''''''''''''''''''''''''''''''''''''''
-
-# 解密网络数据中的gzip加密数据
-def gzipdecode(data):
-    s = StringIO.StringIO(data)
-    gziper = gzip.GzipFile(fileobj = s)
-    data = gziper.read()
-    return data
-
-# def getdata(url):
-#     s = requests.session()
-#     r = s.get(url)
-#     soup = BeautifulSoup(r.text)
-#     return soup
-#
-# def postdata():
-#     #用户名和密码
-#     login_data = {'username': '用户名', "userpwd":"密码", }
-#     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.81 Safari/537.36'}
-#     s = requests.session()
-#     r = s.post("http://my.51job.com/my/My_Pmc.php", data=login_data, headers=headers)
-#     soup = BeautifulSoup(r.text)
-#     return soup
-
-# post数据的示例代码，虽不可重用，但可快速复制修改使用，提高编码效率。
-def postdata2():
-    data = {'login_email':'xxxx','login_password':'xxxx'}
-    post_data = urllib.urlencode(data)
-    print post_data
-    cj = cookielib.CookieJar()
-    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-    headers = {
-        'Host':'passport.jiayuan.com',\
-        'User-Agent':'Mozilla/5.0 (Windows NT 6.3; rv:35.0) Gecko/20100101 Firefox/35.0',\
-        'Accept':'*/*',\
-        'Accept-Language':'zh-cn,zh;q=0.8,en-us;q=0.5,en;q=0.3',\
-        'Accept-Encoding':'gzip, deflate'
-    }
-    website = 'https://passport.jiayuan.com/dologin.php?pre_url=http://www.jiayuan.com/usercp'
-    req = urllib2.Request(website, post_data, headers)
-    response = opener.open(req)
-    print response.geturl()
-    print response.info()
-    content = response.read()
-    print gzipdecode(content)
-    return
 ''''''''''''''''''''''''''''''''''''''''''
 # 日志输出函数，使用示例：
 # logger = star.logger().getlogger()
