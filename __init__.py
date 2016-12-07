@@ -16,14 +16,18 @@ zip
 压缩包操作模块
 
 加解密操作模块
+
+pycrypto https://www.dlitz.net/software/pycrypto/
 '''
 import os
 import re
 import sys
+import uuid
 import time
 import shutil
 import socket
 import requests
+import zlib
 import gzip
 import urllib
 import urllib2
@@ -38,6 +42,7 @@ from random import choice
 from bs4 import BeautifulSoup
 from win32com.shell import shell
 from win32com.shell import shellcon
+# from Crypto.Cipher import AES
 
 __all__ = ['path', 'file', 'net', 'zip', 'crypt']
 
@@ -259,6 +264,8 @@ def getip():
     # ip_lists = socket.gethostbyname_ex(socket.gethostname())
     # for ip_list in ip_lists:
     #     print ip_list
+def getmac():
+    return ':'.join(['{:02X}'.format((uuid.getnode() >> i) & 0xff) for i in range(0, 8 * 6, 8)][::-1])
 
 # def setclipboard(s):
 #     win32clipboard.OpenClipboard()
@@ -409,6 +416,13 @@ def deletedirs(to_del_dirs):
     else:
         return True
 
+# 目录下文件大小累加
+def getdirsize(path):
+    size = 0L
+    for root, dirs, files in os.walk(path, True):
+        size += sum([os.path.getsize(os.path.join(root, name)) for name in files])
+        return size
+
 def deletefile(to_del_file):
     if os.path.exists(to_del_file):
          os.remove(to_del_file)
@@ -466,18 +480,31 @@ def getfilelistfromdir(rootPath, endstring):
         return []
     return fileList
 
-
 def gbk2unicode(s):
     return s.decode('gbk', 'ignore')
 
+# 脚本文件#coding:utf-8时默认不带u的字符串为utf8字符串：star.utf82unicode('我')
 def utf82unicode(s):
     return s.decode('utf-8', 'ignore')
 
+# 带u的字符串为unicode
+# star.unicode2gbk(u'\u4e5f\u6709')
+# star.unicode2gbk(u'也有')
 def unicode2gbk(s):
     return s.encode('gbk')
 
+# 带u的字符串为unicode
+# star.unicode2utf8(u'\u4e5f\u6709')
+# star.unicode2utf8(u'也有')
 def unicode2utf8(s):
     return s.encode('utf-8')
+
+# win下命令行参数为gbk编码：star.gbk2utf8(sys.argv[1]) + '也有'
+def gbk2utf8(s):
+    return s.decode('gbk', 'ignore').encode('utf-8')
+
+def utf82gbk(s):
+    return s.decode('utf-8', 'ignore').encode('gbk')
 ###################################################
 '''
 网络相关
@@ -495,8 +522,8 @@ def gethtml(url, decode = True):
     # s = BeautifulSoup(s, "lxml")
     return s
 
-#简单的爬虫脚本，用来爬取网页
-def gethtmlex(url):
+#简单的爬虫脚本，用来爬取网页gethtmlex('xxxxx', {'ip': '8.8.8.8'})
+def gethtmlex(url, params = None):
     headers = {
            'Accept-Language': 'en-US,en;q=0.5',
            'Accept-Encoding': 'gzip, deflate',
@@ -505,7 +532,7 @@ def gethtmlex(url):
            }
     headers['User-Agent'] = "Mozilla/5.0 (Windows NT 6.3; WOW64; rv:35.0) Gecko/20100101 Firefox/35.0" #USER_AGENTS[random.randint(0, len(USER_AGENTS)-1)]
     try:
-        r = requests.get(url, params={'ip': '8.8.8.8'}, headers=headers, timeout=10)
+        r = requests.get(url, params=params, headers=headers, timeout=10)
         r.raise_for_status()
     except requests.RequestException as e:
         logging.error(e)
@@ -635,7 +662,23 @@ def sha1file(file_path):
                 break
             s.update(file.read())
     return s.hexdigest().upper()
-''''''''''''''''''''''''''''''''''''''''''
+
+def getcrc32(s):
+    return zlib.crc32(s)
+
+# key = '0123456789abcdef'
+def aesencode(s, key):
+    mode = AES.MODE_CBC
+    encryptor = AES.new(key, mode)
+    r = encryptor.encrypt(s)
+    return r
+
+def aesdecode(s, key):
+    mode = AES.MODE_CBC
+    decryptor = AES.new(key, mode)
+    r = decryptor.decrypt(s)
+    return r
+
 def base64encode(s):
     return base64.b64encode(s)
 def base64decode(s):
@@ -682,11 +725,45 @@ class timer:
         cost = self.endtime - self.begintime
         return cost.seconds
 
-# '"(.*?)"'
-def find(reg, content):
+'''
+在content中查找规则为reg的字符串，如果指定捕获的结果列表，则按指定的序号(基数从1开始)返回。
+如果未指定结果列表则直接返回命中结果，由调用者自行提取。
+若未命中返回None，指定的多返回结果也均为None。
+
+x, y = star.find('"(.*?)"(.*?)"(.*?)"', '"10"20"30"', [2,1])
+print x, y  #20 10
+x, y = star.find('"(.*?)"(.*?)"(.*?)"1', '"10"20"30"', [2,1])
+print x, y  #None None
+print star.find('"(.*?)"(.*?)"(.*?)"', '"10"20"30"')    #<_sre.SRE_Match object at 0x03123840>
+print star.find('"(.*?)"(.*?)"(.*?)"1', '"10"20"30"')   #None
+'''
+def find(reg, content, group = None):
     pattern = re.compile(reg, re.U | re.S)
     result = pattern.search(content)
-    return result
+    if result is not None:
+        if group is None:
+            return result
+        else:
+            return (result.group(i) for i in group)
+    else:
+        if group is None:
+            return None
+        else:
+            return (None for i in group)
+
+def search(reg, content, group = None):
+    star.find(reg, content, group)
+
+'''
+s = 'dd10aa20ccdd30aa40ccdd50aa60ccdd70aa80cc'
+r = star.findall('dd(.*?)aa(.*?)cc', s)
+[('10', '20'), ('30', '40'), ('50', '60'), ('70', '80')]
+
+findall(r"<a.*?href=.*?<\/a>",ss,re.I)
+'''
+def findall(reg, content):
+    r = re.findall(reg, content)
+    return r
 
 # 先抓大后抓小
 # html = star.gethtml("https://github.com/pythonstar/star/wiki/%E8%AF%B4%E6%98%8E%E6%96%87%E6%A1%A3")
