@@ -480,6 +480,7 @@ def getfilelistfromdir(rootPath, endstring):
         return []
     return fileList
 
+# win下命令行参数为gbk编码：star.gbk2unicode(sys.argv[1]) + u'也有'
 def gbk2unicode(s):
     return s.decode('gbk', 'ignore')
 
