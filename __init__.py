@@ -742,18 +742,33 @@ def find(reg, content, group = None):
     pattern = re.compile(reg, re.U | re.S)
     result = pattern.search(content)
     if result is not None:
-        if group is None:
+        if group is None or len(group)==0:
             return result
         else:
             return (result.group(i) for i in group)
     else:
-        if group is None:
+        if group is None or len(group)==0:
             return None
         else:
             return (None for i in group)
 
-def search(reg, content, group = None):
-    star.find(reg, content, group)
+'''
+x, y = star.search('"(.*?)"(.*?)"(.*?)"', '"10"20"30"', 2, 1)
+print x, y  #20 10
+'''
+def search(reg, content, *group):
+    pattern = re.compile(reg, re.U | re.S)
+    result = pattern.search(content)
+    if result is not None:
+        if group is None or len(group)==0:
+            return result
+        else:
+            return (result.group(i) for i in group)
+    else:
+        if group is None or len(group) == 0:
+            return None
+        else:
+            return (None for i in group)
 
 '''
 s = 'dd10aa20ccdd30aa40ccdd50aa60ccdd70aa80cc'
