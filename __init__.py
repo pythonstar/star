@@ -26,6 +26,8 @@ import uuid
 import time
 import shutil
 import socket
+import ctypes
+import struct
 import requests
 import zlib
 import gzip
@@ -257,15 +259,38 @@ scan3()
 系统相关
 '''
 ###################################################
-#获取本机IP
+#获取本机IP import socket
 def getip():
-    local_iP = socket.gethostbyname(socket.gethostname())
-    return str(local_iP)
-    # ip_lists = socket.gethostbyname_ex(socket.gethostname())
-    # for ip_list in ip_lists:
-    #     print ip_list
+    ip = socket.gethostbyname(socket.gethostname())
+    return str(ip)
+
+def getips():
+    ips = socket.gethostbyname_ex(socket.gethostname())
+    print ips
+
+# import ctypes
+# import struct
 def getmac():
-    return ':'.join(['{:02X}'.format((uuid.getnode() >> i) & 0xff) for i in range(0, 8 * 6, 8)][::-1])
+    """ Returns the MAC address of a network host, requires >= WIN2K.
+        ref: http://blog.csdn.net/toontong/article/details/7088777
+    """
+    # Check for api availability
+    try:
+        SendARP = ctypes.windll.Iphlpapi.SendARP
+    except:
+        raise NotImplementedError('Usage only on Windows 2000 and above')
+
+    hostip = socket.gethostbyname(socket.gethostname())
+    inetaddr = ctypes.windll.wsock32.inet_addr(hostip)
+
+    buffer = ctypes.c_buffer(6)
+    addlen = ctypes.c_ulong(ctypes.sizeof(buffer))
+    if SendARP(inetaddr, 0, ctypes.byref(buffer), ctypes.byref(addlen)) != 0:
+        raise WindowsError('Retreival of mac address(%s) - failed' % hostip)
+
+    # Convert binary data into a string.
+    mac = ':'.join('%02X'%i for i in struct.unpack('BBBBBB', buffer))
+    return mac
 
 # def setclipboard(s):
 #     win32clipboard.OpenClipboard()
