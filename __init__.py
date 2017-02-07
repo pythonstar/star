@@ -40,6 +40,8 @@ import logging
 import string
 import StringIO
 import datetime
+import platform
+import subprocess
 from random import choice
 from bs4 import BeautifulSoup
 from win32com.shell import shell
@@ -126,7 +128,7 @@ class TimeRecorder:
         self.name = name
         self.startTime = time.time()
     def __del__(self):
-        print(u"{0} end, time used: {1}".format(self.name, time.time() - self.startTime))
+        print(u"%s end, time used: %.1f s", self.name, time.time() - self.startTime)
 
 """
 def scan1():
@@ -144,7 +146,7 @@ def logtime(func):
         print(func.func_name + u" start")
         startTime = time.time()
         ret = func(*args, **kwargs)
-        print(u"{0} end, time used: {1}".format(func.func_name, time.time() - startTime))
+        print(u"%s end, time used: %.1f s", func.func_name, time.time() - startTime)
         return ret
     return wrapper
 
@@ -160,7 +162,7 @@ def logtimewithname(name = None):
             print(_name + u" start")
             startTime = time.time()
             res = func(*args, **kwargs)
-            print(u"{0} end, time used: {1}".format(_name, time.time() - startTime))
+            print(u"%s end, time used: %.1f s", _name, time.time() - startTime)
             return res
         return wrapper2
     return wrapper
@@ -393,6 +395,16 @@ def getparent(filepath):
     lsPath = os.path.split(lsPath[0])
     return lsPath[0]
 
+# 获取文件夹的名字,无论是否带\都可以准确获取
+def getDirName(filepath):
+    if not filepath:
+        return None
+    lsPath = os.path.split(filepath)
+    if lsPath[1]:
+        return lsPath[1]
+    else:
+        return os.path.split(lsPath[0])[1]
+
 # 获取一个文件的大小
 def getfilesize(f):
     return os.path.getsize(f)
@@ -589,8 +601,8 @@ def download(url, f):
     try:
         filename = urllib.urlretrieve(url, filename = f)
         # print filename[0], filename[1]
-    except:
-        print 'except: url miss http...'
+    except Exception as e:
+        print 'except: ' + e.message
         filename = None
     return filename
 
@@ -767,8 +779,8 @@ def find(reg, content, group = None):
     pattern = re.compile(reg, re.U | re.S)
     result = pattern.search(content)
     if result is not None:
-        if group is None or len(group)==0:
-            return result
+        if group is None or len(group) < 2:
+            return result.group(1)
         else:
             return (result.group(i) for i in group)
     else:
@@ -785,8 +797,8 @@ def search(reg, content, *group):
     pattern = re.compile(reg, re.U | re.S)
     result = pattern.search(content)
     if result is not None:
-        if group is None or len(group)==0:
-            return result
+        if group is None or len(group) < 2:
+            return result.group(1)
         else:
             return (result.group(i) for i in group)
     else:
