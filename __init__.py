@@ -19,33 +19,35 @@ zip
 
 pycrypto https://www.dlitz.net/software/pycrypto/
 '''
-import os
-import re
-import sys
-import uuid
-import time
-import shutil
-import socket
-import ctypes
-import struct
-import requests
-import zlib
-import gzip
-import urllib
-import urllib2
-import cookielib
+import StringIO
 import base64
+import cookielib
+import ctypes
+import datetime
+import gzip
 import hashlib
 import logging
-import string
-import StringIO
-import datetime
+import os
 import platform
+import re
+import requests
+import shutil
+import socket
+import string
+import struct
 import subprocess
-from random import choice
+import sys
+import time
+import urllib
+import urllib2
+import uuid
+import zlib
 from bs4 import BeautifulSoup
+from random import choice
+
 from win32com.shell import shell
 from win32com.shell import shellcon
+
 # from Crypto.Cipher import AES
 
 __all__ = ['path', 'file', 'net', 'zip', 'crypt']
@@ -61,7 +63,7 @@ __all__ = ['path', 'file', 'net', 'zip', 'crypt']
 star.initlogging()
 logging.debug(u"%s %d", u"哈", 1)
 '''
-def initlogging(logfilename = u"log.txt"):
+def initlogging(logFile = u"log.txt", toFile = False):
     '''
     binPath = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "bin")
     pid = '%d' % (os.getpid())
@@ -79,12 +81,20 @@ def initlogging(logfilename = u"log.txt"):
     logging.getLogger('').addHandler(console)
     #################################################################################################
     '''
-    logging.basicConfig(stream=sys.stdout,
-                        format = '%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
-                        datefmt = '%Y-%m-%d %H:%M:%S',
-                        filename = logfilename,
-                        filemode = 'a',
-                        level = logging.DEBUG)
+    if toFile is False:
+        filename = None
+        stream = sys.stdout
+    else:
+        filename = logFile
+        stream = None
+    logging.basicConfig(
+        level = logging.DEBUG,
+        format = '%(asctime)s %(filename)-15s[line:%(lineno)-4d] %(levelname)-6s %(message)s',
+        datefmt = '%Y-%m-%d %H:%M:%S',
+        filename = filename,
+        filemode = 'a',
+        stream = stream
+    )
 
 '''
 把一段内容作为日志保存到当前目录下的log.txt文件中，每次重新创建，不追加！追加模式请使用loga函数。
@@ -396,7 +406,7 @@ def getparent(filepath):
     return lsPath[0]
 
 # 获取文件夹的名字,无论是否带\都可以准确获取
-def getDirName(filepath):
+def getdirname(filepath):
     if not filepath:
         return None
     lsPath = os.path.split(filepath)
@@ -404,6 +414,12 @@ def getDirName(filepath):
         return lsPath[1]
     else:
         return os.path.split(lsPath[0])[1]
+
+# 获取文件名及其扩展名
+def getnameandext(filename):
+    (filepath, tempfilename) = os.path.split(filename)
+    (shotname, ext) = os.path.splitext(tempfilename)
+    return shotname, ext
 
 # 获取一个文件的大小
 def getfilesize(f):
